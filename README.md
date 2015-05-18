@@ -9,7 +9,13 @@ Caution: currently loads one API request / host to retrieve the IP address of th
 Start the binary and give it the path to the Foreman API as argument.
 
 ````
-$ foreman-api http://foreman.domain/api
+$ foreman-api http://foreman.domain/api --user user --password password
+````
+
+Send a Foreman query:
+
+````
+$ foreman-api http://foreman.domain/api --user user --password password --search "foreman query"
 ````
 
 # Development 
