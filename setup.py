@@ -1,9 +1,9 @@
 from setuptools import setup
 
 setup(
-    name='foreman-api',
+    name='foreman-ssh',
     version='0.1',
-    py_modules=['foremanapi'],
+    py_modules=['foremanssh'],
     install_requires=[
         'click',
         'requests',
@@ -11,6 +11,6 @@ setup(
     ],
     entry_points='''
         [console_scripts]
-        foreman-api=foremanapi:cli
+        foreman-ssh=foremanssh:main
     ''',
 )

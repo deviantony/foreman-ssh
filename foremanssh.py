@@ -5,7 +5,7 @@ import requests
 @click.command()
 @click.argument('foreman-api')
 @click.option('--search', help="Foreman search string")
-def cli(foreman_api, search):
+def main(foreman_api, search):
     """ Usage: foreman-api http://foreman.wit.prod/api/hosts """
     parameters = {'search': search}
     foreman_api_host_endpoint = ''.join([foreman_api, '/hosts'])
