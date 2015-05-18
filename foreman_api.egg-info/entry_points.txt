@@ -1,4 +1,0 @@
-
-        [console_scripts]
-        foreman-api=foremanapi:cli
-    
