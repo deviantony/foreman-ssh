@@ -39,6 +39,7 @@ def process_host(base_url, authentication, host_id):
                      auth=authentication)
     response_json = r.json()
     if r.status_code == 200:
-        print("IP: %s" % response_json["host"]["ip"])
+        host_ip = response_json["host"]["ip"]
+        print("IP: %s" % host_ip)
     else:
         print(response_json)
