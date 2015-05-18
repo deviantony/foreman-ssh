@@ -1,6 +1,6 @@
 # Foreman SSH
 
-A tool to trigger SSH commands against a host list retrieved via the Foreman API.
+A tool to trigger SSH commands against a host list retrieved via the Foreman API (version 2).
 
 Caution: currently loads one API request / host to retrieve the IP address of the host, can be very greedy.
 
