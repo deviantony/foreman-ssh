@@ -20,7 +20,7 @@ $ foreman-api http://foreman.domain/api --user user --password password --search
 
 # Development 
 
-Ensure you have a Python 3 environment running.
+Ensure you have a Python 2.7 environment running.
 
 Install the dependencies:
 
