@@ -1,62 +1,116 @@
 import click
 import requests
-from pssh import ParallelSSHClient
+import logging
+from pssh import (ParallelSSHClient,
+                  AuthenticationException,
+                  UnknownHostException,
+                  ConnectionErrorException)
 
 
 @click.command()
-@click.argument('foreman-api')
+@click.argument('foreman-api-url')
 @click.argument('command')
-@click.option('--user', help="User used to authenticate against Foreman.")
-@click.option('--password',
-              help="Password used to authenticate against Foreman.")
-@click.option('--search', help="Foreman search string")
-def main(foreman_api, command, user, password, search):
-    if user and password:
-        authentication = (user, password)
-    else:
-        authentication = None
+@click.option('--foreman-user',
+              help="Username used to authenticate against the Foreman API.")
+@click.option('--foreman-password',
+              help="Password used to authenticate against the Foreman API.")
+@click.option('--foreman-search',
+              help="Foreman search string.")
+@click.option('--ssh-user',
+              help="SSH username used to authenticate against hosts.")
+@click.option('--ssh-password',
+              help="SSH password used to authenticate against hosts.")
+@click.option('--ssh-timeout',
+              default=5,
+              type=int,
+              help="Number of seconds to timeout SSH connection attempts.",
+              show_default=True)
+@click.option('--ssh-parallel-count',
+              default=10,
+              type=int,
+              help="Number of parallel SSH tasks.",
+              show_default=True)
+@click.option('--ssh-retry',
+              default=3,
+              type=int,
+              help="Number of retries for connection attempts.",
+              show_default=True)
+def main(foreman_api_url, command,
+         foreman_user, foreman_password, foreman_search,
+         ssh_user, ssh_password, ssh_timeout, ssh_parallel_count, ssh_retry):
+    setupLogging()
+    foreman_authentication = createForemanAuthentication(
+        foreman_user,
+        foreman_password)
+    hosts = retrieveHostsFromForeman(foreman_api_url,
+                                     foreman_authentication,
+                                     foreman_search)
+    runCommandOnHostList(hosts, command, ssh_timeout,
+                         ssh_parallel_count, ssh_retry)
+
+
+def createForemanAuthentication(foreman_user, foreman_password):
+    foreman_authentication = None
+    if foreman_user and foreman_password:
+        foreman_authentication = (foreman_user, foreman_password)
+    return foreman_authentication
+
+
+def retrieveHostsFromForeman(foreman_api_url,
+                             foreman_authentication,
+                             foreman_search):
     hosts = []
-    parameters = {'search': search}
-    foreman_api_host_endpoint = ''.join([foreman_api, '/hosts'])
-    r = requests.get(foreman_api_host_endpoint,
-                     auth=authentication,
+    parameters = {'search': foreman_search}
+    foreman_hosts_endpoint = ''.join([foreman_api_url, '/hosts'])
+    r = requests.get(foreman_hosts_endpoint,
+                     auth=foreman_authentication,
                      params=parameters)
     response_json = r.json()
     if r.status_code == 200:
         for element in response_json:
             host_id = element["host"]["id"]
-            process_host(foreman_api_host_endpoint,
-                         authentication,
-                         hosts,
-                         host_id)
-            break
-    else:
-        print(response_json)
-    if len(hosts) > 0:
-        run(hosts, command)
-    else:
-        print("No hosts")
+            host_information = retrieveHostInformationFromForeman(
+                foreman_api_url,
+                foreman_authentication,
+                host_id)
+            hosts.append(host_information["ip"])
+    return hosts
 
 
-def process_host(base_url, authentication, hosts, host_id):
-    print("HostID: %s" % host_id)
-    foreman_host_api_url = ''.join([base_url,
-                                    '/',
-                                    str(host_id)])
-    r = requests.get(foreman_host_api_url,
-                     auth=authentication)
+def retrieveHostInformationFromForeman(foreman_api_url,
+                                       foreman_authentication,
+                                       host_id):
+    foreman_host_endpoint = ''.join([foreman_api_url,
+                                     '/hosts/',
+                                     str(host_id)])
+    r = requests.get(foreman_host_endpoint,
+                     auth=foreman_authentication)
     response_json = r.json()
     if r.status_code == 200:
         host_ip = response_json["host"]["ip"]
-        print("IP: %s" % host_ip)
-        hosts.append(host_ip)
-    else:
-        print(response_json)
+        host_information = {'ip': host_ip}
+        return host_information
 
 
-def run(hosts, command):
-    client = ParallelSSHClient(hosts)
-    output = client.run_command(command)
-    for host in output:
-        for line in output[host]['stdout']:
-            print(line)
+def runCommandOnHostList(hosts, command,
+                         ssh_timeout, ssh_parallel_count, ssh_retry):
+    client = ParallelSSHClient(hosts,
+                               timeout=ssh_timeout,
+                               pool_size=ssh_parallel_count,
+                               num_retries=ssh_retry)
+    try:
+        output = client.run_command(command)
+        for host in output:
+            for line in output[host]['stdout']:
+                print(line)
+    except (AuthenticationException,
+            UnknownHostException,
+            ConnectionErrorException):
+        print("SSH Exception")
+
+
+def setupLogging():
+    pssh_logger = logging.getLogger('pssh')
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.INFO)
+    pssh_logger.addHandler(ch)
