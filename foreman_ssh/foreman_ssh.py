@@ -1,10 +1,10 @@
-import click
-import requests
-import logging
 from pssh import (ParallelSSHClient,
                   AuthenticationException,
                   UnknownHostException,
                   ConnectionErrorException)
+import click
+import requests
+import logging
 
 
 @click.command()
