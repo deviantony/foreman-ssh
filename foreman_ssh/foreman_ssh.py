@@ -35,9 +35,14 @@ import logging
               type=int,
               help="Number of retries for connection attempts.",
               show_default=True)
+@click.option('--dry-run',
+              help="Trigger a dry-run. Will print the hosts \
+              information without running the command.",
+              is_flag=True)
 def main(foreman_api_url, command,
          foreman_user, foreman_password, foreman_search,
-         ssh_user, ssh_password, ssh_timeout, ssh_parallel_count, ssh_retry):
+         ssh_user, ssh_password, ssh_timeout, ssh_parallel_count, ssh_retry,
+         dry_run):
     setupLogging()
     foreman_authentication = createForemanAuthentication(
         foreman_user,
@@ -45,8 +50,11 @@ def main(foreman_api_url, command,
     hosts = retrieveHostsFromForeman(foreman_api_url,
                                      foreman_authentication,
                                      foreman_search)
-    runCommandOnHostList(hosts, command, ssh_timeout,
-                         ssh_parallel_count, ssh_retry)
+    if dry_run:
+        displayHostsInfo(hosts)
+    else:
+        runCommandOnHostList(hosts, command, ssh_timeout,
+                             ssh_parallel_count, ssh_retry)
 
 
 def createForemanAuthentication(foreman_user, foreman_password):
@@ -114,3 +122,9 @@ def setupLogging():
     ch = logging.StreamHandler()
     ch.setLevel(logging.INFO)
     pssh_logger.addHandler(ch)
+
+
+def displayHostsInfo(hosts):
+    print("Targeting %i hosts:" % len(hosts))
+    for host in hosts:
+        print(host)
