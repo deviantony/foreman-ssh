@@ -70,34 +70,16 @@ def retrieveHostsFromForeman(foreman_api_url,
     hosts = []
     parameters = {'search': foreman_search}
     foreman_hosts_endpoint = ''.join([foreman_api_url, '/hosts'])
+    headers = {'Accept': 'version=2'}
     r = requests.get(foreman_hosts_endpoint,
+                     headers=headers,
                      auth=foreman_authentication,
                      params=parameters)
     response_json = r.json()
     if r.status_code == 200:
-        for element in response_json:
-            host_id = element["host"]["id"]
-            host_information = retrieveHostInformationFromForeman(
-                foreman_api_url,
-                foreman_authentication,
-                host_id)
-            hosts.append(host_information["ip"])
+        for element in response_json["results"]:
+            hosts.append(element["ip"])
     return hosts
-
-
-def retrieveHostInformationFromForeman(foreman_api_url,
-                                       foreman_authentication,
-                                       host_id):
-    foreman_host_endpoint = ''.join([foreman_api_url,
-                                     '/hosts/',
-                                     str(host_id)])
-    r = requests.get(foreman_host_endpoint,
-                     auth=foreman_authentication)
-    response_json = r.json()
-    if r.status_code == 200:
-        host_ip = response_json["host"]["ip"]
-        host_information = {'ip': host_ip}
-        return host_information
 
 
 def runCommandOnHostList(hosts, command,
